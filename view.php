@@ -6,6 +6,7 @@ $search = trim($_GET['search'] ?? '');
 
 // Show message after update or delete
 $message = '';
+
 if (isset($_GET['updated'])) {
     $message = 'Record updated successfully!';
 } elseif (isset($_GET['deleted'])) {
@@ -34,7 +35,7 @@ $totalPages = max(1, (int)ceil($totalEntries / $limit));
 $page = min($page, $totalPages);
 $offset = ($page - 1) * $limit;
 
-// Fetch entries for the current page
+// Fetch entries
 $sql = "SELECT id, name, email, phone, created_at
         FROM entries
         WHERE name LIKE ? OR email LIKE ?
@@ -53,7 +54,6 @@ $result = $stmt->get_result();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WebCraft - All Entries</title>
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
           rel="stylesheet">
 </head>
@@ -74,7 +74,6 @@ $result = $stmt->get_result();
             <input type="text" name="search" class="form-control"
                    placeholder="Search by name or email..."
                    value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>">
-
             <button type="submit" class="btn btn-primary">Search</button>
             <a href="view.php" class="btn btn-secondary">Clear</a>
         </div>
@@ -101,16 +100,14 @@ $result = $stmt->get_result();
             <?php if ($result->num_rows > 0): ?>
                 <?php while ($row = $result->fetch_assoc()): ?>
                     <tr>
-                        <td><?= htmlspecialchars((string)$row['id']) ?></td>
+                        <td><?= (int)$row['id'] ?></td>
                         <td><?= htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td><?= htmlspecialchars($row['email'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td><?= htmlspecialchars($row['phone'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td><?= htmlspecialchars($row['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td>
                             <a href="update.php?id=<?= (int)$row['id'] ?>"
-                               class="btn btn-sm btn-warning mb-1">
-                                Edit
-                            </a>
+                               class="btn btn-sm btn-warning mb-1">Edit</a>
 
                             <a href="delete.php?id=<?= (int)$row['id'] ?>"
                                class="btn btn-sm btn-danger mb-1"
@@ -122,20 +119,16 @@ $result = $stmt->get_result();
                 <?php endwhile; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="6" class="text-center">
-                        No entries found.
-                    </td>
+                    <td colspan="6" class="text-center">No entries found.</td>
                 </tr>
             <?php endif; ?>
             </tbody>
         </table>
     </div>
 
-    <!-- Pagination buttons -->
     <?php if ($totalEntries > 0 && $totalPages > 1): ?>
         <nav aria-label="Entries pagination">
             <ul class="pagination justify-content-center">
-
                 <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
                     <a class="page-link"
                        href="?search=<?= urlencode($search) ?>&page=<?= $page - 1 ?>">
@@ -158,7 +151,6 @@ $result = $stmt->get_result();
                         Next
                     </a>
                 </li>
-
             </ul>
         </nav>
     <?php endif; ?>

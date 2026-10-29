@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <?php if ($message !== ''): ?>
                 <div class="alert alert-info">
-                    <?= htmlspecialchars($message) ?>
+                    <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
                 </div>
             <?php endif; ?>
 
