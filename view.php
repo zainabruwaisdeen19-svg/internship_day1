@@ -4,7 +4,6 @@ include 'config.php';
 
 $search = trim($_GET['search'] ?? '');
 
-// Show message after update or delete
 $message = '';
 
 if (isset($_GET['updated'])) {
@@ -13,11 +12,9 @@ if (isset($_GET['updated'])) {
     $message = 'Record deleted successfully!';
 }
 
-// Pagination settings
 $limit = 5;
 $page = max(1, (int)($_GET['page'] ?? 1));
 
-// Count matching entries
 $countSql = "SELECT COUNT(*) AS total
              FROM entries
              WHERE name LIKE ? OR email LIKE ?";
@@ -35,7 +32,6 @@ $totalPages = max(1, (int)ceil($totalEntries / $limit));
 $page = min($page, $totalPages);
 $offset = ($page - 1) * $limit;
 
-// Fetch entries
 $sql = "SELECT id, name, email, phone, created_at
         FROM entries
         WHERE name LIKE ? OR email LIKE ?
@@ -54,8 +50,24 @@ $result = $stmt->get_result();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WebCraft - All Entries</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
           rel="stylesheet">
+
+    <style>
+        tbody tr:hover {
+            background-color: #dbeafe !important;
+            cursor: pointer;
+        }
+
+        th.sortable {
+            cursor: pointer;
+        }
+
+        th.sortable:hover {
+            background-color: #495057;
+        }
+    </style>
 </head>
 
 <body class="bg-light">
@@ -74,6 +86,7 @@ $result = $stmt->get_result();
             <input type="text" name="search" class="form-control"
                    placeholder="Search by name or email..."
                    value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>">
+
             <button type="submit" class="btn btn-primary">Search</button>
             <a href="view.php" class="btn btn-secondary">Clear</a>
         </div>
@@ -84,13 +97,15 @@ $result = $stmt->get_result();
     </p>
 
     <div class="table-responsive">
-        <table class="table table-striped table-hover table-bordered bg-white">
+        <table id="entriesTable"
+               class="table table-striped table-hover table-bordered bg-white">
+
             <thead class="table-dark">
                 <tr>
                     <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
+                    <th class="sortable" onclick="sortTable(1)">Name ↕</th>
+                    <th class="sortable" onclick="sortTable(2)">Email ↕</th>
+                    <th class="sortable" onclick="sortTable(3)">Phone ↕</th>
                     <th>Created At</th>
                     <th>Actions</th>
                 </tr>
@@ -101,19 +116,26 @@ $result = $stmt->get_result();
                 <?php while ($row = $result->fetch_assoc()): ?>
                     <tr>
                         <td><?= (int)$row['id'] ?></td>
+
                         <td><?= htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8') ?></td>
+
                         <td><?= htmlspecialchars($row['email'], ENT_QUOTES, 'UTF-8') ?></td>
+
                         <td><?= htmlspecialchars($row['phone'], ENT_QUOTES, 'UTF-8') ?></td>
+
                         <td><?= htmlspecialchars($row['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
+
                         <td>
                             <a href="update.php?id=<?= (int)$row['id'] ?>"
                                class="btn btn-sm btn-warning mb-1">Edit</a>
 
-                            <a href="delete.php?id=<?= (int)$row['id'] ?>"
-                               class="btn btn-sm btn-danger mb-1"
-                               onclick="return confirm('Are you sure you want to delete this record?');">
-                                Delete
-                            </a>
+                            <button type="button"
+        class="btn btn-sm btn-danger mb-1"
+        data-bs-toggle="modal"
+        data-bs-target="#deleteModal"
+        data-id="<?= (int)$row['id'] ?>">
+    Delete
+</button>
                         </td>
                     </tr>
                 <?php endwhile; ?>
@@ -129,6 +151,7 @@ $result = $stmt->get_result();
     <?php if ($totalEntries > 0 && $totalPages > 1): ?>
         <nav aria-label="Entries pagination">
             <ul class="pagination justify-content-center">
+
                 <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
                     <a class="page-link"
                        href="?search=<?= urlencode($search) ?>&page=<?= $page - 1 ?>">
@@ -151,6 +174,7 @@ $result = $stmt->get_result();
                         Next
                     </a>
                 </li>
+
             </ul>
         </nav>
     <?php endif; ?>
@@ -158,6 +182,84 @@ $result = $stmt->get_result();
     <a href="form.php" class="btn btn-success">Add New Entry</a>
 
 </div>
+
+<script>
+function sortTable(columnIndex) {
+    const table = document.getElementById("entriesTable");
+    const tbody = table.tBodies[0];
+    const rows = Array.from(tbody.rows);
+
+    const direction = table.dataset.sortDirection === "asc" ? "desc" : "asc";
+
+    rows.sort((rowA, rowB) => {
+        const valueA = rowA.cells[columnIndex].textContent.trim().toLowerCase();
+        const valueB = rowB.cells[columnIndex].textContent.trim().toLowerCase();
+
+        return direction === "asc"
+            ? valueA.localeCompare(valueB, undefined, { numeric: true })
+            : valueB.localeCompare(valueA, undefined, { numeric: true });
+    });
+
+    rows.forEach(row => tbody.appendChild(row));
+
+    table.dataset.sortDirection = direction;
+}
+</script>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1"
+     aria-labelledby="deleteModalLabel" aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    Confirm Delete
+                </h5>
+
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                Are you sure you want to delete this record?
+                This action cannot be undone.
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button" class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+
+                <form action="delete.php" method="GET">
+                    <input type="hidden" name="id" id="deleteRecordId">
+
+                    <button type="submit" class="btn btn-danger">
+                        Yes, Delete
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+const deleteModal = document.getElementById('deleteModal');
+
+deleteModal.addEventListener('show.bs.modal', function (event) {
+
+    const button = event.relatedTarget;
+    const recordId = button.getAttribute('data-id');
+
+    document.getElementById('deleteRecordId').value = recordId;
+});
+</script>
 </body>
 </html>
 
